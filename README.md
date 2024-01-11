@@ -1,371 +1,519 @@
-# Mongoose
+# Stripe Node.js Library
 
-Mongoose is a [MongoDB](https://www.mongodb.org/) object modeling tool designed to work in an asynchronous environment. Mongoose supports both promises and callbacks.
+[![Version](https://img.shields.io/npm/v/stripe.svg)](https://www.npmjs.org/package/stripe)
+[![Build Status](https://travis-ci.org/stripe/stripe-node.svg?branch=master)](https://travis-ci.org/stripe/stripe-node)
+[![Coverage Status](https://coveralls.io/repos/github/stripe/stripe-node/badge.svg)](https://coveralls.io/github/stripe/stripe-node)
+[![Downloads](https://img.shields.io/npm/dm/stripe.svg)](https://www.npmjs.com/package/stripe)
+[![Try on RunKit](https://badge.runkitcdn.com/stripe.svg)](https://runkit.com/npm/stripe)
 
-[![Slack Status](http://slack.mongoosejs.io/badge.svg)](http://slack.mongoosejs.io)
-[![Build Status](https://github.com/Automattic/mongoose/workflows/Test/badge.svg)](https://github.com/Automattic/mongoose)
-[![NPM version](https://badge.fury.io/js/mongoose.svg)](http://badge.fury.io/js/mongoose)
+The Stripe Node library provides convenient access to the Stripe API from
+applications written in server-side JavaScript.
 
-[![npm](https://nodei.co/npm/mongoose.png)](https://www.npmjs.com/package/mongoose)
+For collecting customer and payment information in the browser, use [Stripe.js][stripe-js].
 
 ## Documentation
 
-The official documentation website is [mongoosejs.com](http://mongoosejs.com/).
+See the [`stripe-node` API docs](https://stripe.com/docs/api?lang=node) for Node.js.
 
-[Mongoose 5.0.0](https://github.com/Automattic/mongoose/blob/master/History.md#500--2018-01-17) was released on January 17, 2018. You can find more details on [backwards breaking changes in 5.0.0 on our docs site](https://mongoosejs.com/docs/migrating_to_5.html).
+See [video demonstrations][youtube-playlist] covering how to use the library.
 
-## Support
+## Requirements
 
-  - [Stack Overflow](http://stackoverflow.com/questions/tagged/mongoose)
-  - [Bug Reports](https://github.com/Automattic/mongoose/issues/)
-  - [Mongoose Slack Channel](http://slack.mongoosejs.io/)
-  - [Help Forum](http://groups.google.com/group/mongoose-orm)
-  - [MongoDB Support](https://docs.mongodb.org/manual/support/)
-
-## Plugins
-
-Check out the [plugins search site](http://plugins.mongoosejs.io/) to see hundreds of related modules from the community. Next, learn how to write your own plugin from the [docs](http://mongoosejs.com/docs/plugins.html) or [this blog post](http://thecodebarbarian.com/2015/03/06/guide-to-mongoose-plugins).
-
-## Contributors
-
-Pull requests are always welcome! Please base pull requests against the `master`
-branch and follow the [contributing guide](https://github.com/Automattic/mongoose/blob/master/CONTRIBUTING.md).
-
-If your pull requests makes documentation changes, please do **not**
-modify any `.html` files. The `.html` files are compiled code, so please make
-your changes in `docs/*.pug`, `lib/*.js`, or `test/docs/*.js`.
-
-View all 400+ [contributors](https://github.com/Automattic/mongoose/graphs/contributors).
+Node 8, 10 or higher.
 
 ## Installation
 
-First install [Node.js](http://nodejs.org/) and [MongoDB](https://www.mongodb.org/downloads). Then:
+Install the package with:
 
 ```sh
-$ npm install mongoose
+npm install stripe --save
+# or
+yarn add stripe
 ```
 
-## Importing
+## Usage
 
-```javascript
-// Using Node.js `require()`
-const mongoose = require('mongoose');
+The package needs to be configured with your account's secret key, which is
+available in the [Stripe Dashboard][api-keys]. Require it with the key's
+value:
 
-// Using ES6 imports
-import mongoose from 'mongoose';
+<!-- prettier-ignore -->
+```js
+const stripe = require('stripe')('sk_test_...');
+
+stripe.customers.create({
+  email: 'customer@example.com',
+})
+  .then(customer => console.log(customer.id))
+  .catch(error => console.error(error));
 ```
 
-## Mongoose for Enterprise
-
-Available as part of the Tidelift Subscription
-
-The maintainers of mongoose and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. [Learn more.](https://tidelift.com/subscription/pkg/npm-mongoose?utm_source=npm-mongoose&utm_medium=referral&utm_campaign=enterprise&utm_term=repo)
-
-## Overview
-
-### Connecting to MongoDB
-
-First, we need to define a connection. If your app uses only one database, you should use `mongoose.connect`. If you need to create additional connections, use `mongoose.createConnection`.
-
-Both `connect` and `createConnection` take a `mongodb://` URI, or the parameters `host, database, port, options`.
+Or using ES modules and `async`/`await`:
 
 ```js
-await mongoose.connect('mongodb://localhost/my_database', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  useFindAndModify: false,
-  useCreateIndex: true
+import Stripe from 'stripe';
+const stripe = new Stripe('sk_test_...');
+
+(async () => {
+  const customer = await stripe.customers.create({
+    email: 'customer@example.com',
+  });
+
+  console.log(customer.id);
+})();
+```
+
+### Usage with TypeScript
+
+As of 8.0.1, Stripe maintains types for the latest [API version][api-versions].
+
+Import Stripe as a default import (not `* as Stripe`, unlike the DefinitelyTyped version)
+and instantiate it as `new Stripe()` with the latest API version.
+
+```ts
+import Stripe from 'stripe';
+const stripe = new Stripe('sk_test_...', {
+  apiVersion: '2020-08-27',
+});
+
+const createCustomer = async () => {
+  const params: Stripe.CustomerCreateParams = {
+    description: 'test customer',
+  };
+
+  const customer: Stripe.Customer = await stripe.customers.create(params);
+
+  console.log(customer.id);
+};
+createCustomer();
+```
+
+You can find a full TS server example in [stripe-samples](https://github.com/stripe-samples/accept-a-card-payment/tree/master/using-webhooks/server/node-typescript).
+
+#### Using old API versions with TypeScript
+
+Types can change between API versions (e.g., Stripe may have changed a field from a string to a hash),
+so our types only reflect the latest API version.
+
+We therefore encourage [upgrading your API version][api-version-upgrading]
+if you would like to take advantage of Stripe's TypeScript definitions.
+
+If you are on an older API version (e.g., `2019-10-17`) and not able to upgrade,
+you may pass another version or `apiVersion: null` to use your account's default API version,
+and use a comment like `// @ts-ignore stripe-version-2019-10-17` to silence type errors here
+and anywhere the types differ between your API version and the latest.
+When you upgrade, you should remove these comments.
+
+We also recommend using `// @ts-ignore` if you have access to a beta feature and need to send parameters beyond the type definitions.
+
+#### Using `expand` with TypeScript
+
+[Expandable][expanding_objects] fields are typed as `string | Foo`,
+so you must cast them appropriately, e.g.,
+
+```ts
+const paymentIntent: Stripe.PaymentIntent = await stripe.paymentIntents.retrieve(
+  'pi_123456789',
+  {
+    expand: ['customer'],
+  }
+);
+const customerEmail: string = (paymentIntent.customer as Stripe.Customer).email;
+```
+
+### Using Promises
+
+Every method returns a chainable promise which can be used instead of a regular
+callback:
+
+```js
+// Create a new customer and then create an invoice item then invoice it:
+stripe.customers
+  .create({
+    email: 'customer@example.com',
+  })
+  .then((customer) => {
+    // have access to the customer object
+    return stripe.invoiceItems
+      .create({
+        customer: customer.id, // set the customer id
+        amount: 2500, // 25
+        currency: 'usd',
+        description: 'One-time setup fee',
+      })
+      .then((invoiceItem) => {
+        return stripe.invoices.create({
+          collection_method: 'send_invoice',
+          customer: invoiceItem.customer,
+        });
+      })
+      .then((invoice) => {
+        // New invoice created on a new customer
+      })
+      .catch((err) => {
+        // Deal with an error
+      });
+  });
+```
+
+## Configuration
+
+### Initialize with config object
+
+The package can be initialized with several options:
+
+```js
+import ProxyAgent from 'https-proxy-agent';
+
+const stripe = Stripe('sk_test_...', {
+  apiVersion: '2019-08-08',
+  maxNetworkRetries: 1,
+  httpAgent: new ProxyAgent(process.env.http_proxy),
+  timeout: 1000,
+  host: 'api.example.com',
+  port: 123,
+  telemetry: true,
 });
 ```
 
-Once connected, the `open` event is fired on the `Connection` instance. If you're using `mongoose.connect`, the `Connection` is `mongoose.connection`. Otherwise, `mongoose.createConnection` return value is a `Connection`.
+| Option              | Default            | Description                                                                                                                                                                                                                                       |
+| ------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiVersion`        | `null`             | Stripe API version to be used. If not set the account's default version will be used.                                                                                                                                                             |
+| `maxNetworkRetries` | 0                  | The amount of times a request should be [retried](#network-retries).                                                                                                                                                                              |
+| `httpAgent`         | `null`             | [Proxy](#configuring-a-proxy) agent to be used by the library.                                                                                                                                                                                    |
+| `timeout`           | 80000              | [Maximum time each request can take in ms.](#configuring-timeout)                                                                                                                                                                                 |
+| `host`              | `'api.stripe.com'` | Host that requests are made to.                                                                                                                                                                                                                   |
+| `port`              | 443                | Port that requests are made to.                                                                                                                                                                                                                   |
+| `protocol`          | `'https'`          | `'https'` or `'http'`. `http` is never appropriate for sending requests to Stripe servers, and we strongly discourage `http`, even in local testing scenarios, as this can result in your credentials being transmitted over an insecure channel. |
+| `telemetry`         | `true`             | Allow Stripe to send latency [telemetry](#request-latency-telemetry).                                                                                                                                                                             |
 
-**Note:** _If the local connection fails then try using 127.0.0.1 instead of localhost. Sometimes issues may arise when the local hostname has been changed._
+Note: Both `maxNetworkRetries` and `timeout` can be overridden on a per-request basis.
 
-**Important!** Mongoose buffers all the commands until it's connected to the database. This means that you don't have to wait until it connects to MongoDB in order to define models, run queries, etc.
+### Configuring Timeout
 
-### Defining a Model
-
-Models are defined through the `Schema` interface.
+Timeout can be set globally via the config object:
 
 ```js
-const Schema = mongoose.Schema;
-const ObjectId = Schema.ObjectId;
-
-const BlogPost = new Schema({
-  author: ObjectId,
-  title: String,
-  body: String,
-  date: Date
+const stripe = Stripe('sk_test_...', {
+  timeout: 20 * 1000, // 20 seconds
 });
 ```
 
-Aside from defining the structure of your documents and the types of data you're storing, a Schema handles the definition of:
-
-* [Validators](http://mongoosejs.com/docs/validation.html) (async and sync)
-* [Defaults](http://mongoosejs.com/docs/api.html#schematype_SchemaType-default)
-* [Getters](http://mongoosejs.com/docs/api.html#schematype_SchemaType-get)
-* [Setters](http://mongoosejs.com/docs/api.html#schematype_SchemaType-set)
-* [Indexes](http://mongoosejs.com/docs/guide.html#indexes)
-* [Middleware](http://mongoosejs.com/docs/middleware.html)
-* [Methods](http://mongoosejs.com/docs/guide.html#methods) definition
-* [Statics](http://mongoosejs.com/docs/guide.html#statics) definition
-* [Plugins](http://mongoosejs.com/docs/plugins.html)
-* [pseudo-JOINs](http://mongoosejs.com/docs/populate.html)
-
-The following example shows some of these features:
+And overridden on a per-request basis:
 
 ```js
-const Comment = new Schema({
-  name: { type: String, default: 'hahaha' },
-  age: { type: Number, min: 18, index: true },
-  bio: { type: String, match: /[a-z]/ },
-  date: { type: Date, default: Date.now },
-  buff: Buffer
-});
-
-// a setter
-Comment.path('name').set(function (v) {
-  return capitalize(v);
-});
-
-// middleware
-Comment.pre('save', function (next) {
-  notify(this.get('email'));
-  next();
-});
+stripe.customers.create(
+  {
+    email: 'customer@example.com',
+  },
+  {
+    timeout: 1000, // 1 second
+  }
+);
 ```
 
-Take a look at the example in [`examples/schema/schema.js`](https://github.com/Automattic/mongoose/blob/master/examples/schema/schema.js) for an end-to-end example of a typical setup.
+### Configuring For Connect
 
-### Accessing a Model
-
-Once we define a model through `mongoose.model('ModelName', mySchema)`, we can access it through the same function
+A per-request `Stripe-Account` header for use with [Stripe Connect][connect]
+can be added to any method:
 
 ```js
-const MyModel = mongoose.model('ModelName');
+// List the balance transactions for a connected account:
+stripe.balanceTransactions.list(
+  {
+    limit: 10,
+  },
+  {
+    stripeAccount: 'acct_foo',
+  }
+);
 ```
 
-Or just do it all at once
+### Configuring a Proxy
+
+To use stripe behind a proxy you can pass an [https-proxy-agent][https-proxy-agent] on initialization:
 
 ```js
-const MyModel = mongoose.model('ModelName', mySchema);
+if (process.env.http_proxy) {
+  const ProxyAgent = require('https-proxy-agent');
+
+  const stripe = Stripe('sk_test_...', {
+    httpProxy: new ProxyAgent(process.env.http_proxy),
+  });
+}
 ```
 
-The first argument is the _singular_ name of the collection your model is for. **Mongoose automatically looks for the _plural_ version of your model name.** For example, if you use
+### Network retries
+
+Automatic network retries can be enabled with the `maxNetworkRetries` config option.
+This will retry requests `n` times with exponential backoff if they fail due to an intermittent network problem.
+[Idempotency keys](https://stripe.com/docs/api/idempotent_requests) are added where appropriate to prevent duplication.
 
 ```js
-const MyModel = mongoose.model('Ticket', mySchema);
-```
-
-Then Mongoose will create the model for your __tickets__ collection, not your __ticket__ collection.
-
-Once we have our model, we can then instantiate it, and save it:
-
-```js
-const instance = new MyModel();
-instance.my.key = 'hello';
-instance.save(function (err) {
-  //
+const stripe = Stripe('sk_test_...', {
+  maxNetworkRetries: 2, // Retry a request twice before giving up
 });
 ```
 
-Or we can find documents from the same collection
+Network retries can also be set on a per-request basis:
 
 ```js
-MyModel.find({}, function (err, docs) {
-  // docs.forEach
+stripe.customers.create(
+  {
+    email: 'customer@example.com',
+  },
+  {
+    maxNetworkRetries: 2, // Retry this specific request twice before giving up
+  }
+);
+```
+
+### Examining Responses
+
+Some information about the response which generated a resource is available
+with the `lastResponse` property:
+
+```js
+customer.lastResponse.requestId; // see: https://stripe.com/docs/api/request_ids?lang=node
+customer.lastResponse.statusCode;
+```
+
+### `request` and `response` events
+
+The Stripe object emits `request` and `response` events. You can use them like this:
+
+```js
+const stripe = require('stripe')('sk_test_...');
+
+const onRequest = (request) => {
+  // Do something.
+};
+
+// Add the event handler function:
+stripe.on('request', onRequest);
+
+// Remove the event handler function:
+stripe.off('request', onRequest);
+```
+
+#### `request` object
+
+```js
+{
+  api_version: 'latest',
+  account: 'acct_TEST',              // Only present if provided
+  idempotency_key: 'abc123',         // Only present if provided
+  method: 'POST',
+  path: '/v1/customers',
+  request_start_time: 1565125303932  // Unix timestamp in milliseconds
+}
+```
+
+#### `response` object
+
+```js
+{
+  api_version: 'latest',
+  account: 'acct_TEST',              // Only present if provided
+  idempotency_key: 'abc123',         // Only present if provided
+  method: 'POST',
+  path: '/v1/customers',
+  status: 402,
+  request_id: 'req_Ghc9r26ts73DRf',
+  elapsed: 445,                      // Elapsed time in milliseconds
+  request_start_time: 1565125303932, // Unix timestamp in milliseconds
+  request_end_time: 1565125304377    // Unix timestamp in milliseconds
+}
+```
+
+### Webhook signing
+
+Stripe can optionally sign the webhook events it sends to your endpoint, allowing you to validate that they were not sent by a third-party. You can read more about it [here](https://stripe.com/docs/webhooks#signatures).
+
+Please note that you must pass the _raw_ request body, exactly as received from Stripe, to the `constructEvent()` function; this will not work with a parsed (i.e., JSON) request body.
+
+You can find an example of how to use this with [Express](https://expressjs.com/) in the [`examples/webhook-signing`](examples/webhook-signing) folder, but here's what it looks like:
+
+```js
+const event = stripe.webhooks.constructEvent(
+  webhookRawBody,
+  webhookStripeSignatureHeader,
+  webhookSecret
+);
+```
+
+#### Testing Webhook signing
+
+You can use `stripe.webhooks.generateTestHeaderString` to mock webhook events that come from Stripe:
+
+```js
+const payload = {
+  id: 'evt_test_webhook',
+  object: 'event',
+};
+
+const payloadString = JSON.stringify(payload, null, 2);
+const secret = 'whsec_test_secret';
+
+const header = stripe.webhooks.generateTestHeaderString({
+  payload: payloadString,
+  secret,
+});
+
+const event = stripe.webhooks.constructEvent(payloadString, header, secret);
+
+// Do something with mocked signed event
+expect(event.id).to.equal(payload.id);
+```
+
+### Writing a Plugin
+
+If you're writing a plugin that uses the library, we'd appreciate it if you identified using `stripe.setAppInfo()`:
+
+```js
+stripe.setAppInfo({
+  name: 'MyAwesomePlugin',
+  version: '1.2.34', // Optional
+  url: 'https://myawesomeplugin.info', // Optional
 });
 ```
 
-You can also `findOne`, `findById`, `update`, etc.
+This information is passed along when the library makes calls to the Stripe API.
+
+### Auto-pagination
+
+We provide a few different APIs for this to aid with a variety of node versions and styles.
+
+#### Async iterators (`for-await-of`)
+
+If you are in a Node environment that has support for [async iteration](https://github.com/tc39/proposal-async-iteration#the-async-iteration-statement-for-await-of),
+such as Node 10+ or [babel](https://babeljs.io/docs/en/babel-plugin-transform-async-generator-functions),
+the following will auto-paginate:
 
 ```js
-const instance = await MyModel.findOne({ ... });
-console.log(instance.my.key);  // 'hello'
+for await (const customer of stripe.customers.list()) {
+  doSomething(customer);
+  if (shouldStop()) {
+    break;
+  }
+}
 ```
 
-For more details check out [the docs](http://mongoosejs.com/docs/queries.html).
+#### `autoPagingEach`
 
-**Important!** If you opened a separate connection using `mongoose.createConnection()` but attempt to access the model through `mongoose.model('ModelName')` it will not work as expected since it is not hooked up to an active db connection. In this case access your model through the connection you created:
+If you are in a Node environment that has support for `await`, such as Node 7.9 and greater,
+you may pass an async function to `.autoPagingEach`:
 
 ```js
-const conn = mongoose.createConnection('your connection string');
-const MyModel = conn.model('ModelName', schema);
-const m = new MyModel;
-m.save(); // works
-```
-
-vs
-
-```js
-const conn = mongoose.createConnection('your connection string');
-const MyModel = mongoose.model('ModelName', schema);
-const m = new MyModel;
-m.save(); // does not work b/c the default connection object was never connected
-```
-
-### Embedded Documents
-
-In the first example snippet, we defined a key in the Schema that looks like:
-
-```
-comments: [Comment]
-```
-
-Where `Comment` is a `Schema` we created. This means that creating embedded documents is as simple as:
-
-```js
-// retrieve my model
-const BlogPost = mongoose.model('BlogPost');
-
-// create a blog post
-const post = new BlogPost();
-
-// create a comment
-post.comments.push({ title: 'My comment' });
-
-post.save(function (err) {
-  if (!err) console.log('Success!');
+await stripe.customers.list().autoPagingEach(async (customer) => {
+  await doSomething(customer);
+  if (shouldBreak()) {
+    return false;
+  }
 });
+console.log('Done iterating.');
 ```
 
-The same goes for removing them:
+Equivalently, without `await`, you may return a Promise, which can resolve to `false` to break:
 
 ```js
-BlogPost.findById(myId, function (err, post) {
-  if (!err) {
-    post.comments[0].remove();
-    post.save(function (err) {
-      // do something
+stripe.customers
+  .list()
+  .autoPagingEach((customer) => {
+    return doSomething(customer).then(() => {
+      if (shouldBreak()) {
+        return false;
+      }
     });
-  }
-});
+  })
+  .then(() => {
+    console.log('Done iterating.');
+  })
+  .catch(handleError);
 ```
 
-Embedded documents enjoy all the same features as your models. Defaults, validators, middleware. Whenever an error occurs, it's bubbled to the `save()` error callback, so error handling is a snap!
+#### `autoPagingToArray`
 
+This is a convenience for cases where you expect the number of items
+to be relatively small; accordingly, you must pass a `limit` option
+to prevent runaway list growth from consuming too much memory.
 
-### Middleware
-
-See the [docs](http://mongoosejs.com/docs/middleware.html) page.
-
-#### Intercepting and mutating method arguments
-
-You can intercept method arguments via middleware.
-
-For example, this would allow you to broadcast changes about your Documents every time someone `set`s a path in your Document to a new value:
+Returns a promise of an array of all items across pages for a list request.
 
 ```js
-schema.pre('set', function (next, path, val, typel) {
-  // `this` is the current Document
-  this.emit('set', path, val);
-
-  // Pass control to the next pre
-  next();
-});
+const allNewCustomers = await stripe.customers
+  .list({created: {gt: lastMonth}})
+  .autoPagingToArray({limit: 10000});
 ```
 
-Moreover, you can mutate the incoming `method` arguments so that subsequent middleware see different values for those arguments. To do so, just pass the new values to `next`:
+### Request latency telemetry
+
+By default, the library sends request latency telemetry to Stripe. These
+numbers help Stripe improve the overall latency of its API for all users.
+
+You can disable this behavior if you prefer:
 
 ```js
-.pre(method, function firstPre (next, methodArg1, methodArg2) {
-  // Mutate methodArg1
-  next("altered-" + methodArg1.toString(), methodArg2);
-});
-
-// pre declaration is chainable
-.pre(method, function secondPre (next, methodArg1, methodArg2) {
-  console.log(methodArg1);
-  // => 'altered-originalValOfMethodArg1'
-
-  console.log(methodArg2);
-  // => 'originalValOfMethodArg2'
-
-  // Passing no arguments to `next` automatically passes along the current argument values
-  // i.e., the following `next()` is equivalent to `next(methodArg1, methodArg2)`
-  // and also equivalent to, with the example method arg
-  // values, `next('altered-originalValOfMethodArg1', 'originalValOfMethodArg2')`
-  next();
+const stripe = new Stripe('sk_test_...', {
+  telemetry: false,
 });
 ```
 
-#### Schema gotcha
+## More Information
 
-`type`, when used in a schema has special meaning within Mongoose. If your schema requires using `type` as a nested property you must use object notation:
+- [REST API Version](https://github.com/stripe/stripe-node/wiki/REST-API-Version)
+- [Error Handling](https://github.com/stripe/stripe-node/wiki/Error-Handling)
+- [Passing Options](https://github.com/stripe/stripe-node/wiki/Passing-Options)
+- [Using Stripe Connect](https://github.com/stripe/stripe-node/wiki/Using-Stripe-Connect-with-node.js)
 
-```js
-new Schema({
-  broken: { type: Boolean },
-  asset: {
-    name: String,
-    type: String // uh oh, it broke. asset will be interpreted as String
-  }
-});
+## Development
 
-new Schema({
-  works: { type: Boolean },
-  asset: {
-    name: String,
-    type: { type: String } // works. asset is an object with a type property
-  }
-});
+Run all tests:
+
+```bash
+$ yarn install
+$ yarn test
 ```
 
-### Driver Access
+If you do not have `yarn` installed, you can get it with `npm install --global yarn`.
 
-Mongoose is built on top of the [official MongoDB Node.js driver](https://github.com/mongodb/node-mongodb-native). Each mongoose model keeps a reference to a [native MongoDB driver collection](http://mongodb.github.io/node-mongodb-native/2.1/api/Collection.html). The collection object can be accessed using `YourModel.collection`. However, using the collection object directly bypasses all mongoose features, including hooks, validation, etc. The one
-notable exception that `YourModel.collection` still buffers
-commands. As such, `YourModel.collection.find()` will **not**
-return a cursor.
+Run a single test suite without a coverage report:
 
-## API Docs
+```bash
+$ yarn mocha-only test/Error.spec.js
+```
 
-Find the API docs [here](http://mongoosejs.com/docs/api.html), generated using [dox](https://github.com/tj/dox)
-and [acquit](https://github.com/vkarpov15/acquit).
+Run a single test (case sensitive) in watch mode:
 
-## Related Projects
+```bash
+$ yarn mocha-only test/Error.spec.js --grep 'Populates with type' --watch
+```
 
-#### MongoDB Runners
+If you wish, you may run tests using your Stripe _Test_ API key by setting the
+environment variable `STRIPE_TEST_API_KEY` before running the tests:
 
-- [run-rs](https://www.npmjs.com/package/run-rs)
-- [mongodb-memory-server](https://www.npmjs.com/package/mongodb-memory-server)
-- [mongodb-topology-manager](https://www.npmjs.com/package/mongodb-topology-manager)
+```bash
+$ export STRIPE_TEST_API_KEY='sk_test....'
+$ yarn test
+```
 
-#### Unofficial CLIs
+Run prettier:
 
-- [mongoosejs-cli](https://www.npmjs.com/package/mongoosejs-cli)
+Add an [editor integration](https://prettier.io/docs/en/editors.html) or:
 
-#### Data Seeding
+```bash
+$ yarn fix
+```
 
-- [dookie](https://www.npmjs.com/package/dookie)
-- [seedgoose](https://www.npmjs.com/package/seedgoose)
-- [mongoose-data-seed](https://www.npmjs.com/package/mongoose-data-seed)
+[api-keys]: https://dashboard.stripe.com/account/apikeys
+[api-versions]: https://stripe.com/docs/api/versioning
+[api-version-upgrading]: https://stripe.com/docs/upgrades#how-can-i-upgrade-my-api
+[connect]: https://stripe.com/connect
+[expanding_objects]: https://stripe.com/docs/api/expanding_objects
+[https-proxy-agent]: https://github.com/TooTallNate/node-https-proxy-agent
+[stripe-js]: https://stripe.com/docs/stripe.js
+[youtube-playlist]: https://www.youtube.com/playlist?list=PLy1nL-pvL2M5xNIuNapwmABwEy2uifAlY
 
-#### Express Session Stores
-
-- [connect-mongodb-session](https://www.npmjs.com/package/connect-mongodb-session)
-- [connect-mongo](https://www.npmjs.com/package/connect-mongo)
-
-## License
-
-Copyright (c) 2010 LearnBoost &lt;dev@learnboost.com&gt;
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-'Software'), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+<!--
+# vim: set tw=79:
+-->
